@@ -1,98 +1,122 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
+import React from 'react';
+import { View, Text, StyleSheet, Image, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
 import { Link } from 'expo-router';
 
-export default function HomeScreen() {
+// Assure-toi d'avoir le logo en .png dans ce dossier
+const logo = require('../../assets/images/logo-vad.png'); 
+
+export default function WelcomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
+    <SafeAreaView style={styles.container}>
+      {/* Cercle décoratif Orange clair en haut à droite */}
+      <View style={styles.decorativeCircle} />
+
+      <View style={styles.mainContent}>
+        {/* Logo VAD */}
+        <Image source={logo} style={styles.logo} resizeMode="contain" />
+        
+        <Text style={styles.welcomeText}>
+          Votre assistance à portée de main
+        </Text>
+        <Text style={styles.tagline}>
+          Accédez rapidement à tous vos services.
+        </Text>
+      </View>
+
+      {/* Bloc Footer avec les deux boutons bien distincts */}
+      <View style={styles.footer}>
+        {/* Bouton de Connexion - Plein Orange */}
+        <Link href="/login" asChild>
+          <TouchableOpacity style={styles.loginButton} activeOpacity={0.8}>
+            <Text style={styles.loginButtonText}>SE CONNECTER</Text>
+          </TouchableOpacity>
         </Link>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        {/* Bouton d'Inscription - Contour Orange */}
+        <Link href="/register" asChild>
+          <TouchableOpacity style={styles.registerButton} activeOpacity={0.7}>
+            <Text style={styles.registerButtonText}>CRÉER UN COMPTE</Text>
+          </TouchableOpacity>
+        </Link>
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#FFFFFF',
+    overflow: 'hidden', // Pour que le cercle ne dépasse pas du container
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
+  decorativeCircle: {
     position: 'absolute',
+    top: -50,
+    right: -50,
+    width: 300,
+    height: 300,
+    borderRadius: '100%',
+    backgroundColor: '#f97316', // Orange très clair (orange-50)
+    zIndex: -1, // Derrière le contenu
+  },
+  mainContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 30,
+  },
+  logo: {
+    width: 220,
+    height: 110,
+    marginBottom: 20,
+  },
+  welcomeText: {
+    fontSize: 28,
+    color: '#1F2937',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  tagline: {
+    fontSize: 16,
+    color: '#6B7280',
+    textAlign: 'center',
+    paddingHorizontal: 10,
+  },
+  footer: {
+    paddingHorizontal: 30,
+    paddingBottom: 40, // Espace important pour ne pas chevaucher la barre d'onglets
+  },
+  loginButton: {
+    backgroundColor: '#f97316', // Orange-500 (VAD)
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    marginBottom: 12,
+    // Ombre pour faire ressortir le bouton
+    shadowColor: '#f97316',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
+  },
+  registerButton: {
+    backgroundColor: '#FFFFFF',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#f97316',
+  },
+  registerButtonText: {
+    color: '#f97316',
+    fontSize: 16,
+    fontWeight: 'bold',
+    letterSpacing: 0.5,
   },
 });
