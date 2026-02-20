@@ -1,15 +1,46 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform } from 'react-native';
-import { useRouter, Link } from 'expo-router'; // <--- LE LINK VIENT D'ICI
-import { ArrowLeft, Mail, Lock } from 'lucide-react-native'; // <--- PAS DE LINK ICI
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
+import { useRouter, Link } from 'expo-router';
+import { ArrowLeft, Mail, Lock } from 'lucide-react-native';
+
+
+// --- IMPORT DE TA FONCTION ---
+import { Login } from '../../src/requests/post'; 
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isLoading, setIsLoading] = useState(false); // Pour afficher un spinner
 
-  const handleLogin = () => {
-    console.log('Tentative de connexion avec:', email, password);
+  const handleLogin = async () => {
+
+    console.log('handleLogin appelé avec email:', email, 'et password:', password)
+    // 1. Validation simple
+    if (!email || !password) {
+      Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // 2. Appel de ta fonction dans (request)/post.js
+      const result = await Login(email, password);
+
+      if (result && result.success) {
+        // 3. Si CakePHP répond success: true
+        console.log('Connexion réussie:', result.data);
+        router.replace('/profile'); // Redirection vers l'accueil
+      } else {
+        // 4. Si CakePHP répond success: false (mauvais pass, etc.)
+        Alert.alert('Échec', result.message || 'Identifiants incorrects');
+      }
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible de contacter le serveur.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -37,6 +68,7 @@ export default function LoginScreen() {
               onChangeText={setEmail}
               keyboardType="email-address"
               autoCapitalize="none"
+              editable={!isLoading}
             />
           </View>
 
@@ -48,18 +80,26 @@ export default function LoginScreen() {
               value={password}
               onChangeText={setPassword}
               secureTextEntry
+              editable={!isLoading}
             />
           </View>
 
-          {/* Maintenant ce Link fonctionnera car c'est le bon composant */}
           <Link href="/reset-password" asChild>
             <TouchableOpacity style={styles.forgotPassword} activeOpacity={0.7}>
                 <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
             </TouchableOpacity>
           </Link>
 
-          <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-            <Text style={styles.loginButtonText}>SE CONNECTER</Text>
+          <TouchableOpacity 
+            style={[styles.loginButton, isLoading && { backgroundColor: '#fdba74' }]} 
+            onPress={handleLogin}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator color="#fff" />
+            ) : (
+              <Text style={styles.loginButtonText}>SE CONNECTER</Text>
+            )}
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>
@@ -67,21 +107,10 @@ export default function LoginScreen() {
   );
 }
 
-// ... Tes styles restent identiques
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#fff',
-  },
-  decorativeCircle: {
-    position: 'absolute',
-    top: -80,
-    left: -80,
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: '#FFF7ED',
-    zIndex: -1,
   },
   inner: {
     flex: 1,
@@ -141,11 +170,6 @@ const styles = StyleSheet.create({
     borderRadius: 15,
     alignItems: 'center',
     marginTop: 10,
-    shadowColor: '#f97316',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 4,
   },
   loginButtonText: {
     color: '#fff',
@@ -153,3 +177,4 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
+// ... (Garder tes styles identiques)
