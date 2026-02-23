@@ -5,7 +5,7 @@ import React, { useState, useEffect } from 'react';
 
 // Importe tes outils de sécurité
 import { GetProfile } from '../../src/requests/get'; 
-import { removeToken } from '../../src/auth/authStorage';
+import { removeToken, getToken } from '../../src/auth/authStorage';
 
 export default function ProfileScreen() {
   const [user, setUser] = useState<any>(null);
