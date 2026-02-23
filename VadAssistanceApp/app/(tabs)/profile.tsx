@@ -1,23 +1,35 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as SecureStore from 'expo-secure-store';
+import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { User, Mail, Phone, MapPin, LogOut, ChevronRight, UserCircle } from 'lucide-react-native';
+import { Mail, Phone, MapPin, LogOut, ChevronRight, UserCircle } from 'lucide-react-native';
+import React, { useState, useEffect } from 'react';
+
+// Importe tes outils de sécurité
+import { GetProfile } from '../../src/requests/get'; 
+import { removeToken } from '../../src/auth/authStorage';
 
 export default function ProfileScreen() {
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    // Récupérer les données stockées lors du login
-    const loadUserData = async () => {
-      const userData = await AsyncStorage.getItem('user_data');
-      if (userData) {
-        setUser(JSON.parse(userData));
+    const fetchProfile = async () => {
+      try {
+        // 1. On fait la requête GET sécurisée
+        const response = await GetProfile("user@example.com", "password123"); // Remplace par les vraies valeurs
+        
+        if (response && response.success) {
+          setUser(response.user);
+        }
+      } catch (error) {
+        console.error("Erreur lors de la récupération du profil:", error);
+        // L'apiCall gère déjà la redirection 401, donc on ne gère que les erreurs visuelles ici
+      } finally {
+        setLoading(false);
       }
     };
-    loadUserData();
+
+    fetchProfile();
   }, []);
 
   const handleLogout = async () => {
@@ -27,25 +39,35 @@ export default function ProfileScreen() {
         text: "Déconnexion", 
         style: "destructive", 
         onPress: async () => {
-          await AsyncStorage.clear();
-          await SecureStore.deleteItemAsync('userToken');
+          // On nettoie le token via notre utilitaire
+          await removeToken(); 
           router.replace('/login');
         } 
       }
     ]);
   };
 
-  if (!user) return <View style={styles.container}><Text>Chargement...</Text></View>;
+  if (loading) {
+    return (
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#f97316" />
+        <Text style={{ marginTop: 10, color: '#8E8E93' }}>Chargement du profil...</Text>
+      </View>
+    );
+  }
+
+  // Si pas d'utilisateur après le chargement
+  if (!user) return null;
 
   return (
     <ScrollView style={styles.container}>
       {/* Header avec Avatar */}
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
-            <UserCircle size={80} color="#007AFF" />
+            <UserCircle size={80} color="#f97316" />
         </View>
-        <Text style={styles.userName}>{user.first_name} {user.last_name}</Text>
-        <Text style={styles.userId}>Client n° {user.customer_number}</Text>
+        <Text style={styles.userName}>{user.firstname} {user.lastname}</Text>
+        <Text style={styles.userId}>Client n° {user.id || 'N/A'}</Text>
       </View>
 
       {/* Section Informations Personneles */}
@@ -54,7 +76,7 @@ export default function ProfileScreen() {
         
         <InfoItem icon={<Mail size={20} color="#666" />} label="Email" value={user.email} />
         <InfoItem icon={<Phone size={20} color="#666" />} label="Téléphone" value={user.phone} />
-        <InfoItem icon={<MapPin size={20} color="#666" />} label="Adresse" value={`${user.address}, ${user.city}`} />
+        <InfoItem icon={<MapPin size={20} color="#666" />} label="Adresse" value={user.address ? `${user.address}, ${user.city}` : null} />
       </View>
 
       {/* Section Actions */}

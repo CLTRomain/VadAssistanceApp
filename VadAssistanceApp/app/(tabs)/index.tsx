@@ -31,13 +31,6 @@ export default function WelcomeScreen() {
             <Text style={styles.loginButtonText}>SE CONNECTER</Text>
           </TouchableOpacity>
         </Link>
-
-        {/* Bouton d'Inscription - Contour Orange */}
-        <Link href="/register" asChild>
-          <TouchableOpacity style={styles.registerButton} activeOpacity={0.7}>
-            <Text style={styles.registerButtonText}>CRÉER UN COMPTE</Text>
-          </TouchableOpacity>
-        </Link>
       </View>
     </SafeAreaView>
   );

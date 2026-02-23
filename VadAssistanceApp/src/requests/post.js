@@ -1,5 +1,10 @@
+import { saveToken } from '../auth/authStorage'; // Ton fichier SecureStore
+import { Platform } from 'react-native';
+
 var ip = "localhost"; 
 var port = "8888"
+
+
 
 
 export const Login = async (email, password) => {
@@ -27,12 +32,18 @@ const API_URL = `http://${ip}:${port}/login`;
     console.log('Réponse du serveur:', result);
 
     if (result.success) {
-      console.log('Connexion réussie !', result.data);
-      // Ici, tu pourrais stocker le jeton de session et rediriger
+
+      console.log('Login réussi, token reçu:', result.token);
+      // Sauvegarde le token dans le stockage sécurisé
+      const Saved = await saveToken(result.token); // Sauvegarde le token
+
+      if (!Saved) {
+        console.error('Erreur lors de la sauvegarde du token.');
+      }
       return result; // Retourne le résultat pour que le composant login.tsx puisse l'utiliser
     }
   } catch (error) {
     console.error('Erreur réseau:', error);
-    alert('Impossible de contacter le serveur.');
+
   }
 };
