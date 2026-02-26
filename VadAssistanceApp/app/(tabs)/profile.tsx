@@ -1,106 +1,227 @@
-import { View, Text, StyleSheet, Image, TouchableOpacity, ScrollView, Alert, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Mail, Phone, MapPin, LogOut, ChevronRight, UserCircle } from 'lucide-react-native';
 import React, { useState, useEffect } from 'react';
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  ScrollView, 
+  Alert, 
+  ActivityIndicator,
+  Modal,
+  TextInput
+} from 'react-native';
+import { useRouter } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { 
+  Mail, 
+  Phone, 
+  Cake, 
+  MapPin, 
+  LogOut, 
+  ChevronRight, 
+  UserCircle, 
+  FileText, 
+  Download,
+  X,
+  Check
+} from 'lucide-react-native';
 
-// Importe tes outils de sécurité
-import { GetProfile } from '../../src/requests/get'; 
-import { removeToken, getToken } from '../../src/auth/authStorage';
+import { GetProfile, GetDownload } from '../../src/requests/get'; 
+import { removeToken } from '../../src/auth/authStorage';
 
 export default function ProfileScreen() {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [isEditModalVisible, setEditModalVisible] = useState(false);
+  
+  // States pour le formulaire de modification
+  const [editData, setEditData] = useState({
+    email: '',
+    phone: '',
+    address: ''
+  });
+
   const router = useRouter();
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        // 1. On fait la requête GET sécurisée
-        const response = await GetProfile("user@example.com", "password123"); // Remplace par les vraies valeurs
-        
-        if (response && response.success) {
-          setUser(response.user);
-        }
-      } catch (error) {
-        console.error("Erreur lors de la récupération du profil:", error);
-        // L'apiCall gère déjà la redirection 401, donc on ne gère que les erreurs visuelles ici
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProfile();
+    fetchProfileData();
   }, []);
 
+  const fetchProfileData = async () => {
+    try {
+      const response = await GetProfile();
+      if (response && response.success) {
+        setUser(response.user_info);
+        setEditData({
+          email: response.user_info.email,
+          phone: response.user_info.phone,
+          address: response.user_info.address
+        });
+      }
+    } catch (error) {
+      console.error("Erreur profil:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateProfile = () => {
+    // Ici tu feras ton appel API (POST/PUT) vers CakePHP
+    Alert.alert("Succès", "Vos coordonnées ont été mises à jour localement.");
+    setUser({ ...user, ...editData });
+    setEditModalVisible(false);
+  };
+
+  const handleDownload = async (filePath: string) => {
+    console.log("Téléchargement", `Ouverture de : ${filePath}`);
+    const Dowload = await GetDownload(filePath);
+
+    console.log("URL de téléchargement:", Dowload);
+  };
+
   const handleLogout = async () => {
-    Alert.alert("Déconnexion", "Êtes-vous sûr de vouloir vous déconnecter ?", [
+    Alert.alert("Déconnexion", "Souhaitez-vous vous déconnecter ?", [
       { text: "Annuler", style: "cancel" },
-      { 
-        text: "Déconnexion", 
-        style: "destructive", 
-        onPress: async () => {
-          // On nettoie le token via notre utilitaire
+      { text: "Déconnexion", style: "destructive", onPress: async () => {
           await removeToken(); 
           router.replace('/login');
-        } 
-      }
+      }}
     ]);
   };
 
-  if (loading) {
-    return (
-      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#f97316" />
-        <Text style={{ marginTop: 10, color: '#8E8E93' }}>Chargement du profil...</Text>
-      </View>
-    );
-  }
-
-  // Si pas d'utilisateur après le chargement
+  if (loading) return <View style={styles.loadingContainer}><ActivityIndicator size="large" color="#f97316" /></View>;
   if (!user) return null;
 
   return (
-    <ScrollView style={styles.container}>
-      {/* Header avec Avatar */}
-      <View style={styles.header}>
-        <View style={styles.avatarContainer}>
-            <UserCircle size={80} color="#f97316" />
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+        
+        {/* HEADER */}
+        <View style={styles.header}>
+          <View style={styles.avatarContainer}>
+            <UserCircle size={80} color="#f97316" strokeWidth={1.5} />
+          </View>
+          <Text style={styles.userName}>{user.first_name} {user.last_name}</Text>
+          <Text style={styles.userSub}>{user.contract_name}</Text>
         </View>
-        <Text style={styles.userName}>{user.firstname} {user.lastname}</Text>
-        <Text style={styles.userId}>Client n° {user.id || 'N/A'}</Text>
-      </View>
 
-      {/* Section Informations Personneles */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Mes informations</Text>
-        
-        <InfoItem icon={<Mail size={20} color="#666" />} label="Email" value={user.email} />
-        <InfoItem icon={<Phone size={20} color="#666" />} label="Téléphone" value={user.phone} />
-        <InfoItem icon={<MapPin size={20} color="#666" />} label="Adresse" value={user.address ? `${user.address}, ${user.city}` : null} />
-      </View>
+        {/* BOUTON PRINCIPAL */}
+        <View style={styles.mainActionContainer}>
+          <TouchableOpacity 
+            style={styles.mainContractButton}
+            onPress={() => {
+              const firstFile = user.contract_subscriber_files?.[0];
+              if (firstFile) handleDownload(firstFile.id, firstFile.name);
+            }}
+          >
+            <View style={styles.mainContractLeft}>
+              <FileText size={22} color="#FFF" />
+              <Text style={styles.mainContractText}>Consulter mon contrat</Text>
+            </View>
+            <ChevronRight size={20} color="#FFF" />
+          </TouchableOpacity>
+        </View>
 
-      {/* Section Actions */}
-      <View style={styles.section}>
-        <TouchableOpacity style={styles.actionButton}>
-          <Text style={styles.actionText}>Modifier mon profil</Text>
-          <ChevronRight size={20} color="#CCC" />
-        </TouchableOpacity>
-        
-        <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+        {/* SECTION : DOCUMENTS */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Mes Documents</Text>
+          {user.contract_subscriber_files?.map((file: any) => (
+            <View key={file.id} style={styles.fileRow}>
+              <View style={styles.fileInfo}>
+                <FileText size={20} color="#666" />
+                <Text style={styles.fileName} numberOfLines={1}>{file.name}</Text>
+              </View>
+              <TouchableOpacity style={styles.downloadIconBtn} onPress={() => handleDownload(file.download_path)}>
+                <Download size={18} color="#f97316" />
+              </TouchableOpacity>
+            </View>
+          ))}
+        </View>
+
+        {/* SECTION : COORDONNÉES + BOUTON MODIFIER */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionTitle}>Mes coordonnées</Text>
+            <TouchableOpacity onPress={() => setEditModalVisible(true)}>
+              <Text style={styles.editActionText}>Modifier</Text>
+            </TouchableOpacity>
+          </View>
+          
+          <InfoItem icon={<Mail size={18} color="#8E8E93" />} label="Email" value={user.email} />
+          <InfoItem icon={<Phone size={18} color="#8E8E93" />} label="Téléphone" value={user.phone} />
+          <InfoItem 
+            icon={<Cake size={18} color="#8E8E93" />} 
+            label="Date de naissance" 
+            value={user.date_of_birth ? new Date(user.date_of_birth).toLocaleDateString('fr-FR') : "N/A"} 
+          />
+          <InfoItem icon={<MapPin size={18} color="#8E8E93" />} label="Adresse" value={user.address} isLast />
+        </View>
+
+        {/* LOGOUT */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
           <LogOut size={20} color="#FF3B30" />
           <Text style={styles.logoutText}>Se déconnecter</Text>
         </TouchableOpacity>
-      </View>
-    </ScrollView>
+
+        <View style={{ height: 40 }} />
+      </ScrollView>
+
+      {/* MODAL DE MODIFICATION */}
+      <Modal visible={isEditModalVisible} animationType="slide" transparent={true}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Modifier mes infos</Text>
+              <TouchableOpacity onPress={() => setEditModalVisible(false)}>
+                <X size={24} color="#1C1C1E" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.inputLabel}>Email</Text>
+              <TextInput 
+                style={styles.input} 
+                value={editData.email} 
+                onChangeText={(t) => setEditData({...editData, email: t})}
+                keyboardType="email-address"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.inputLabel}>Téléphone</Text>
+              <TextInput 
+                style={styles.input} 
+                value={editData.phone} 
+                onChangeText={(t) => setEditData({...editData, phone: t})}
+                keyboardType="phone-pad"
+              />
+            </View>
+
+            <View style={styles.formGroup}>
+              <Text style={styles.inputLabel}>Adresse</Text>
+              <TextInput 
+                style={styles.input} 
+                value={editData.address} 
+                onChangeText={(t) => setEditData({...editData, address: t})}
+              />
+            </View>
+
+            <TouchableOpacity style={styles.saveButton} onPress={handleUpdateProfile}>
+              <Check size={20} color="#FFF" />
+              <Text style={styles.saveButtonText}>Enregistrer</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </SafeAreaView>
   );
 }
 
-// Petit composant réutilisable pour les lignes d'info
-function InfoItem({ icon, label, value }: any) {
+function InfoItem({ icon, label, value, isLast }: any) {
   return (
-    <View style={styles.infoRow}>
-      {icon}
-      <View style={styles.infoTextContainer}>
+    <View style={[styles.infoRow, isLast && { borderBottomWidth: 0 }]}>
+      <View style={styles.infoIcon}>{icon}</View>
+      <View>
         <Text style={styles.infoLabel}>{label}</Text>
         <Text style={styles.infoValue}>{value || "Non renseigné"}</Text>
       </View>
@@ -109,19 +230,43 @@ function InfoItem({ icon, label, value }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F2F2F7' },
-  header: { alignItems: 'center', padding: 30, backgroundColor: '#FFF', marginBottom: 20 },
-  avatarContainer: { marginBottom: 15 },
+  safeArea: { flex: 1, backgroundColor: '#F2F2F7' },
+  container: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  header: { alignItems: 'center', paddingVertical: 25, backgroundColor: '#FFF', borderBottomWidth: 1, borderColor: '#E5E5EA' },
+  avatarContainer: { marginBottom: 10 },
   userName: { fontSize: 22, fontWeight: 'bold', color: '#1C1C1E' },
-  userId: { fontSize: 14, color: '#8E8E93', marginTop: 5 },
-  section: { backgroundColor: '#FFF', paddingHorizontal: 16, marginBottom: 20, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#E5E5EA' },
-  sectionTitle: { fontSize: 13, color: '#8E8E93', textTransform: 'uppercase', marginVertical: 10, marginLeft: 0 },
+  userSub: { fontSize: 14, color: '#f97316', marginTop: 4, fontWeight: '500' },
+  mainActionContainer: { paddingHorizontal: 16, marginTop: 20 },
+  mainContractButton: { 
+    backgroundColor: '#f97316', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', 
+    padding: 18, borderRadius: 15, elevation: 5
+  },
+  mainContractLeft: { flexDirection: 'row', alignItems: 'center', },
+  mainContractText: { color: '#FFF', fontSize: 17, fontWeight: 'bold', marginLeft: 12 },
+  section: { backgroundColor: '#FFF', marginTop: 20,  padding: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#E5E5EA' },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, marginBottom: 8 },
+  sectionTitle: { fontSize: 13, color: '#8E8E93', textTransform: 'uppercase' },
+  editActionText: { fontSize: 14, color: '#f97316', fontWeight: 'bold' },
+  fileRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, borderBottomWidth: 0.5, borderColor: '#E5E5EA' },
+  fileInfo: { flexDirection: 'row', alignItems: 'center', flex: 1 },
+  fileName: { fontSize: 15, color: '#1C1C1E', marginLeft: 12, flexShrink: 1 },
+  downloadIconBtn: { padding: 8 },
   infoRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 0.5, borderColor: '#E5E5EA' },
-  infoTextContainer: { marginLeft: 15 },
+  infoIcon: { width: 35 },
   infoLabel: { fontSize: 12, color: '#8E8E93' },
-  infoValue: { fontSize: 16, color: '#1C1C1E', marginTop: 2 },
-  actionButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 15 },
-  actionText: { fontSize: 16, color: '#007AFF' },
-  logoutButton: { flexDirection: 'row', alignItems: 'center', paddingVertical: 15, marginTop: 5 },
-  logoutText: { fontSize: 16, color: '#FF3B30', marginLeft: 10, fontWeight: '600' },
+  infoValue: { fontSize: 15, color: '#1C1C1E', marginTop: 2 },
+  logoutBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFF', marginTop: 30, paddingVertical: 16, borderTopWidth: 1, borderBottomWidth: 1, borderColor: '#E5E5EA' },
+  logoutText: { color: '#FF3B30', fontSize: 16, fontWeight: 'bold', marginLeft: 10 },
+  
+  // MODAL STYLES
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
+  modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 20, paddingBottom: 40 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#1C1C1E' },
+  formGroup: { marginBottom: 15 },
+  inputLabel: { fontSize: 14, color: '#8E8E93', marginBottom: 5 },
+  input: { backgroundColor: '#F2F2F7', padding: 12, borderRadius: 10, fontSize: 16 },
+  saveButton: { backgroundColor: '#f97316', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', padding: 16, borderRadius: 12, marginTop: 10 },
+  saveButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold', marginLeft: 8 }
 });
