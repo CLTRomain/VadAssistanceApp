@@ -28,6 +28,7 @@ import {
 
 import { GetProfile, GetDownload } from '../../src/requests/get'; 
 import { removeToken } from '../../src/auth/authStorage';
+import {UpdateSubscriber} from '../../src/requests/post';
 
 export default function ProfileScreen() {
   const [user, setUser] = useState<any>(null);
@@ -65,9 +66,9 @@ export default function ProfileScreen() {
     }
   };
 
-  const handleUpdateProfile = () => {
-    // Ici tu feras ton appel API (POST/PUT) vers CakePHP
-    Alert.alert("Succès", "Vos coordonnées ont été mises à jour localement.");
+  const handleUpdateProfile = async () => {
+    const result = await UpdateSubscriber(editData);
+
     setUser({ ...user, ...editData });
     setEditModalVisible(false);
   };

@@ -1,4 +1,4 @@
-import { saveToken } from '../auth/authStorage'; // Ton fichier SecureStore
+import { saveToken , getToken } from '../auth/authStorage'; // Ton fichier SecureStore
 import { Platform } from 'react-native';
 
 var ip = "localhost"; 
@@ -40,10 +40,41 @@ const API_URL = `http://${ip}:${port}/login`;
       if (!Saved) {
         console.error('Erreur lors de la sauvegarde du token.');
       }
-      return result; // Retourne le résultat pour que le composant login.tsx puisse l'utiliser
+      return await response.json(); // Retourne le résultat pour que le composant login.tsx puisse l'utiliser
     }
   } catch (error) {
     console.error('Erreur réseau:', error);
 
+  }
+};
+
+export const UpdateSubscriber = async (data) => {
+  try {
+    const API_URL = `http://${ip}:${port}/editinfo`;
+    const token = await getToken();
+
+const formData = new FormData();
+    Object.keys(data).forEach(key => {
+      // On vérifie aussi que la valeur n'est pas undefined
+      if (data[key] !== undefined) {
+        formData.append(key, String(data[key]));
+      }
+    });
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: formData,
+      });
+
+    return await response.json()
+
+  } catch (error) {
+    console.error('Erreur Update API:', error);
+    return null;
   }
 };

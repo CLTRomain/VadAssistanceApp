@@ -59,7 +59,6 @@ export const GetDownload = async (filePath) => {
   try {
     const API_URL = `http://${ip}:${port}/download/${filePath}`;
     const token = await getToken();
-    const fileUri = FileSystem.documentDirectory + "mon_contrat.pdf";
 
     const response = await fetch(API_URL, {
       method: 'GET',
@@ -78,7 +77,6 @@ export const GetDownload = async (filePath) => {
         await FileSystem.writeAsStringAsync(fileUri, base64data, {
           encoding: 'base64', 
         });
-
 
           await Sharing.shareAsync(fileUri);
 
