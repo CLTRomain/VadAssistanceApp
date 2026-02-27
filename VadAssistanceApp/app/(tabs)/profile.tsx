@@ -112,7 +112,7 @@ export default function ProfileScreen() {
             style={styles.mainContractButton}
             onPress={() => {
               const firstFile = user.contract_subscriber_files?.[0];
-              if (firstFile) handleDownload(firstFile.id, firstFile.name);
+              if (firstFile) handleDownload(firstFile.id);
             }}
           >
             <View style={styles.mainContractLeft}>
