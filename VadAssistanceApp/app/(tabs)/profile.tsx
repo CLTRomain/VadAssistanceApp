@@ -42,6 +42,12 @@ export default function ProfileScreen() {
     address: ''
   });
 
+
+  const handlePressConsulter = () => {
+  // On passe l'id en paramètre de navigation
+        router.replace('/contract-details'); // Redirection vers l'accueil
+};
+
   const router = useRouter();
 
   useEffect(() => {
@@ -108,13 +114,7 @@ export default function ProfileScreen() {
 
         {/* BOUTON PRINCIPAL */}
         <View style={styles.mainActionContainer}>
-          <TouchableOpacity 
-            style={styles.mainContractButton}
-            onPress={() => {
-              const firstFile = user.contract_subscriber_files?.[0];
-              if (firstFile) handleDownload(firstFile.id);
-            }}
-          >
+          <TouchableOpacity onPress={handlePressConsulter} style={styles.mainContractButton}>
             <View style={styles.mainContractLeft}>
               <FileText size={22} color="#FFF" />
               <Text style={styles.mainContractText}>Consulter mon contrat</Text>
