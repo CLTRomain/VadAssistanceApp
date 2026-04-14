@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,16 @@ import {
   ActivityIndicator,
   TouchableOpacity,
   StatusBar,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Animated,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GetContractDetails } from '../../src/requests/get';
+import { CreateInterventionRequest } from '../../src/requests/post';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const ORANGE = '#f97316';
@@ -60,6 +66,48 @@ export default function ContractDetailsScreen() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [subject, setSubject] = useState('');
+  const [description, setDescription] = useState('');
+  const [resilierVisible, setResilierVisible] = useState(false);
+  const toastOpacity = useRef(new Animated.Value(0)).current;
+
+  const showToast = () => {
+    Animated.sequence([
+      Animated.timing(toastOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.delay(2500),
+      Animated.timing(toastOpacity, { toValue: 0, duration: 400, useNativeDriver: true }),
+    ]).start();
+  };
+
+  const handleResilier = () => {
+    setResilierVisible(false);
+    showToast();
+    // TODO: appel API résiliation
+  };
+
+  const handleSubmitIntervention = async () => {
+    if (!subject.trim() || !description.trim()) return;
+
+    const newRequest = {
+      subject: subject.trim(),
+      description: description.trim(),
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    };
+
+    // Mise à jour optimiste immédiate
+    setData((prev: any) => ({
+      ...prev,
+      supportRequestContacts: [newRequest, ...(prev?.supportRequestContacts ?? [])],
+    }));
+    setSubject('');
+    setDescription('');
+    setModalVisible(false);
+
+    // Envoi au backend
+    await CreateInterventionRequest({ subject: newRequest.subject, description: newRequest.description });
+  };
 
   useEffect(() => {
     const loadData = async () => {
@@ -108,7 +156,7 @@ export default function ContractDetailsScreen() {
         showsVerticalScrollIndicator={false}
       >
         {/* ── BOUTON DEMANDE D'INTERVENTION ── */}
-        <TouchableOpacity style={styles.ctaButton} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.ctaButton} activeOpacity={0.85} onPress={() => setModalVisible(true)}>
           <View style={styles.ctaLeft}>
             <View style={styles.ctaIconBg}>
               <Ionicons name="add" size={20} color={ORANGE} />
@@ -225,13 +273,110 @@ export default function ContractDetailsScreen() {
         </View>
 
         {/* ── BOUTON RÉSILIATION ── */}
-        <TouchableOpacity style={styles.resilierBtn} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.resilierBtn} activeOpacity={0.8} onPress={() => setResilierVisible(true)}>
           <Ionicons name="close-circle-outline" size={20} color="#DC2626" />
           <Text style={styles.resilierText}>Résilier mon contrat</Text>
         </TouchableOpacity>
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      {/* ── MODAL DEMANDE D'INTERVENTION ── */}
+      <Modal visible={modalVisible} animationType="slide" transparent>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHandle} />
+
+            <View style={styles.modalHeader}>
+              <View>
+                <Text style={styles.modalTitle}>Nouvelle demande</Text>
+                <Text style={styles.modalSub}>Décrivez votre besoin d'intervention</Text>
+              </View>
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.modalCloseBtn}>
+                <Ionicons name="close" size={20} color="#6B7280" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Objet */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Objet</Text>
+              <TextInput
+                style={styles.inputSingle}
+                placeholder="Ex : Fuite d'eau, panne électrique..."
+                placeholderTextColor="#D1D5DB"
+                value={subject}
+                onChangeText={setSubject}
+                maxLength={100}
+              />
+            </View>
+
+            {/* Description */}
+            <View style={styles.fieldGroup}>
+              <View style={styles.fieldLabelRow}>
+                <Text style={styles.fieldLabel}>Description</Text>
+                <Text style={[styles.charCount, description.length >= 500 && { color: '#EF4444' }]}>
+                  {description.length}/500
+                </Text>
+              </View>
+              <TextInput
+                style={styles.inputMulti}
+                placeholder="Décrivez le problème en détail..."
+                placeholderTextColor="#D1D5DB"
+                value={description}
+                onChangeText={setDescription}
+                maxLength={500}
+                multiline
+                textAlignVertical="top"
+              />
+            </View>
+
+            <TouchableOpacity
+              style={[styles.submitBtn, (!subject.trim() || !description.trim()) && { opacity: 0.5 }]}
+              onPress={handleSubmitIntervention}
+              disabled={!subject.trim() || !description.trim()}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.submitBtnText}>Envoyer la demande</Text>
+              <View style={styles.submitArrow}>
+                <MaterialCommunityIcons name="send" size={16} color={ORANGE} />
+              </View>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </Modal>
+
+      {/* ── POPUP RÉSILIATION ── */}
+      <Modal visible={resilierVisible} animationType="fade" transparent>
+        <View style={styles.popupOverlay}>
+          <View style={styles.popupBox}>
+            <View style={styles.popupIconWrap}>
+              <Ionicons name="warning-outline" size={32} color="#DC2626" />
+            </View>
+            <Text style={styles.popupTitle}>Demande de résiliation</Text>
+            <Text style={styles.popupBody}>
+              Êtes-vous sûr d'envoyer votre demande de résiliation ? Vous serez recontacté par notre équipe.
+            </Text>
+            <View style={styles.popupActions}>
+              <TouchableOpacity style={styles.popupBtnNo} onPress={() => setResilierVisible(false)} activeOpacity={0.8}>
+                <Text style={styles.popupBtnNoText}>Non</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.popupBtnYes} onPress={handleResilier} activeOpacity={0.8}>
+                <Text style={styles.popupBtnYesText}>Oui, résilier</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* ── TOAST CONFIRMATION ── */}
+      <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
+        <Ionicons name="checkmark-circle" size={18} color="#22C55E" />
+        <Text style={styles.toastText}>Votre demande de résiliation a été prise en compte</Text>
+      </Animated.View>
+
     </SafeAreaView>
   );
 }
@@ -390,6 +535,166 @@ const styles = StyleSheet.create({
   dateTagText: { fontSize: 10, fontWeight: '700', color: ORANGE_DARK },
   priceTag: { backgroundColor: '#DCFCE7', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 6 },
   priceTagText: { fontSize: 10, fontWeight: '700', color: '#166534' },
+
+  // Modal intervention
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+  modalSheet: {
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    paddingBottom: 40,
+  },
+  modalHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#E5E7EB',
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    marginBottom: 24,
+  },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: '#111827' },
+  modalSub: { fontSize: 12, color: '#9CA3AF', marginTop: 3 },
+  modalCloseBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#F3F4F6',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fieldGroup: { marginBottom: 16 },
+  fieldLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 6,
+  },
+  charCount: { fontSize: 11, fontWeight: '600', color: '#9CA3AF' },
+  inputSingle: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    fontSize: 15,
+    color: '#111827',
+  },
+  inputMulti: {
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: '#111827',
+    height: 120,
+  },
+  submitBtn: {
+    backgroundColor: ORANGE,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 17,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    marginTop: 4,
+    shadowColor: ORANGE,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
+  },
+  submitBtnText: { color: '#FFF', fontSize: 16, fontWeight: '800' },
+  submitArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+
+  // Popup résiliation
+  popupOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  popupBox: {
+    backgroundColor: '#FFF',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    width: '100%',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  popupIconWrap: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  popupTitle: { fontSize: 17, fontWeight: '800', color: '#111827', marginBottom: 10, textAlign: 'center' },
+  popupBody: { fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 21, marginBottom: 24 },
+  popupActions: { flexDirection: 'row', gap: 12, width: '100%' },
+  popupBtnNo: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  popupBtnNoText: { fontSize: 15, fontWeight: '700', color: '#374151' },
+  popupBtnYes: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#DC2626',
+    alignItems: 'center',
+  },
+  popupBtnYesText: { fontSize: 15, fontWeight: '700', color: '#FFF' },
+
+  // Toast
+  toast: {
+    position: 'absolute',
+    bottom: 40,
+    left: 20,
+    right: 20,
+    backgroundColor: '#111827',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  toastText: { color: '#FFF', fontSize: 13, fontWeight: '600', flex: 1 },
 
   // Résiliation
   resilierBtn: {

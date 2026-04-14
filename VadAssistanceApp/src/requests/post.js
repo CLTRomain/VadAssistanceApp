@@ -43,6 +43,28 @@ export const Login = async (email, password) => {
   }
 };
 
+export const CreateInterventionRequest = async ({ subject, description }) => {
+  try {
+    const API_URL = `http://${ip}:${port}/support-requests/create`;
+    const token = await getToken();
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ subject, description }),
+    });
+
+    return await response.json();
+  } catch (error) {
+    console.error('Erreur CreateInterventionRequest:', error);
+    return null;
+  }
+};
+
 export const UpdateSubscriber = async (data) => {
   try {
     const API_URL = `http://${ip}:${port}/editinfo`;
