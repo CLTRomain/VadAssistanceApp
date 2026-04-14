@@ -1,19 +1,23 @@
 import React, { useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TextInput, 
-  TouchableOpacity, 
-  SafeAreaView, 
-  KeyboardAvoidingView, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
   Platform,
   Keyboard,
   TouchableWithoutFeedback,
-  Alert
+  Alert,
+  StatusBar,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ArrowLeft, Send } from 'lucide-react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { ArrowLeft, Mail } from 'lucide-react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+
+const ORANGE = '#f97316';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -21,54 +25,71 @@ export default function ResetPasswordScreen() {
 
   const handleReset = () => {
     if (!email) {
-      Alert.alert("Erreur", "Veuillez entrer votre adresse email.");
+      Alert.alert('Erreur', 'Veuillez entrer votre adresse email.');
       return;
     }
-    console.log('Demande de reset pour :', email);
-    // Ici, appel à ton API CakePHP pour envoyer l'email
-    Alert.alert("Succès", "Si ce compte existe, un email de récupération a été envoyé.");
+    Alert.alert('Succès', 'Si ce compte existe, un email de récupération a été envoyé.');
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView 
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-          style={styles.inner}
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={ORANGE} />
+
+      {/* ── HAUT ORANGE ── */}
+      <View style={styles.topSection}>
+        <View style={styles.circleTopRight} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
         >
-          {/* Bouton Retour */}
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-            <ArrowLeft color="#f97316" size={30} />
-          </TouchableOpacity>
+          <ArrowLeft color="#FFF" size={22} />
+        </TouchableOpacity>
+        <View style={styles.topContent}>
+          <Text style={styles.topTitle}>Mot de passe{'\n'}oublié ?</Text>
+          <Text style={styles.topSub}>On s'occupe de ça.</Text>
+        </View>
+      </View>
 
-          <View style={styles.headerBox}>
-            <Text style={styles.title}>Mot de passe oublié</Text>
-            <Text style={styles.subtitle}>
-              Entrez votre email pour recevoir les instructions de réinitialisation.
-            </Text>
-          </View>
-
+      {/* ── BAS BLANC ── */}
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.bottomSheet}
+        >
           <View style={styles.form}>
-            <Text style={styles.label}>Adresse Email</Text>
-            <View style={styles.inputWrapper}>
-              <TextInput
-                style={styles.input}
-                placeholder="votre@email.com"
-                placeholderTextColor="#9ca3af"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoFocus={true}
-              />
+
+            <Text style={styles.instructions}>
+              Entrez votre adresse email, nous vous enverrons un lien pour réinitialiser votre mot de passe.
+            </Text>
+
+            {/* Email */}
+            <View style={styles.fieldGroup}>
+              <Text style={styles.fieldLabel}>Adresse email</Text>
+              <View style={styles.inputRow}>
+                <Mail color="#9CA3AF" size={18} style={{ marginRight: 10 }} />
+                <TextInput
+                  style={styles.input}
+                  placeholder="exemple@email.com"
+                  placeholderTextColor="#D1D5DB"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoFocus
+                />
+              </View>
             </View>
 
-            <TouchableOpacity style={styles.resetBtn} onPress={handleReset}>
-              <Text style={styles.resetBtnText}>ENVOYER LE LIEN</Text>
-              <Send color="#fff" size={18} style={styles.iconRight} />
+            {/* Bouton */}
+            <TouchableOpacity style={styles.resetBtn} onPress={handleReset} activeOpacity={0.85}>
+              <Text style={styles.resetBtnText}>Envoyer le lien</Text>
+              <View style={styles.resetArrow}>
+                <MaterialCommunityIcons name="send" size={16} color={ORANGE} />
+              </View>
             </TouchableOpacity>
-          </View>
 
+          </View>
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
     </SafeAreaView>
@@ -76,73 +97,110 @@ export default function ResetPasswordScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
+  container: { flex: 1, backgroundColor: '#FFF' },
+
+  // Top orange
+  topSection: {
+    backgroundColor: ORANGE,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 32,
+    overflow: 'hidden',
   },
-  inner: {
-    flex: 1,
-    paddingHorizontal: 25,
+  circleTopRight: {
+    position: 'absolute',
+    top: -60,
+    right: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
   backBtn: {
-    marginTop: 10,
-    width: 50,
-    height: 50,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  headerBox: {
-    marginVertical: 30,
-  },
-  title: {
-    fontSize: 30,
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginTop: 10,
-    lineHeight: 22,
+  topContent: {},
+  topTitle: { fontSize: 30, fontWeight: '800', color: '#FFF', lineHeight: 38 },
+  topSub: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 6 },
+
+  // Bottom sheet
+  bottomSheet: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    marginTop: -20,
   },
   form: {
-    width: '100%',
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    gap: 20,
   },
-  label: {
+
+  instructions: {
     fontSize: 14,
-    color: '#6b7280',
-    marginBottom: 8,
-    marginLeft: 4,
-    fontWeight: '600',
+    color: '#6B7280',
+    lineHeight: 22,
   },
-  input: {
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
-    padding: 18,
-    fontSize: 16,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    color: '#000',
+
+  // Champ
+  fieldGroup: { gap: 6 },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
-  resetBtn: {
-    backgroundColor: '#f97316',
-    paddingVertical: 18,
-    borderRadius: 12,
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 25,
-    shadowColor: '#f97316',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 3,
+    backgroundColor: '#F9FAFB',
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    height: 56,
+  },
+  input: {
+    flex: 1,
+    fontSize: 15,
+    color: '#111827',
+  },
+
+  // Bouton
+  resetBtn: {
+    backgroundColor: ORANGE,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 17,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    marginTop: 4,
+    shadowColor: ORANGE,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
   },
   resetBtnText: {
-    color: '#fff',
+    color: '#FFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
-  iconRight: {
-    marginLeft: 10,
+  resetArrow: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#FFF',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

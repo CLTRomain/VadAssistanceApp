@@ -1,42 +1,43 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, SafeAreaView, KeyboardAvoidingView, Platform, ActivityIndicator, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  Alert,
+  StatusBar,
+} from 'react-native';
 import { useRouter, Link } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Mail, Lock } from 'lucide-react-native';
+import { Login } from '../../src/requests/post';
 
-
-// --- IMPORT DE TA FONCTION ---
-import { Login } from '../../src/requests/post'; 
+const ORANGE = '#f97316';
 
 export default function LoginScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [isLoading, setIsLoading] = useState(false); // Pour afficher un spinner
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleLogin = async () => {
-
-    console.log('handleLogin appelé avec email:', email, 'et password:', password)
-    // 1. Validation simple
     if (!email || !password) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs.');
       return;
     }
-
     setIsLoading(true);
-
     try {
-      // 2. Appel de ta fonction dans (request)/post.js
       const result = await Login(email, password);
-
-      if (result && result.success) {
-        // 3. Si CakePHP répond success: true
-        console.log('Connexion réussie:', result.data);
-        router.replace('/profile'); // Redirection vers l'accueil
+      if (result?.success) {
+        router.replace('/profile');
       } else {
-        // 4. Si CakePHP répond success: false (mauvais pass, etc.)
         Alert.alert('Échec', result.message || 'Identifiants incorrects');
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Erreur', 'Impossible de contacter le serveur.');
     } finally {
       setIsLoading(false);
@@ -44,63 +45,88 @@ export default function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'} 
-        style={styles.inner}
-      >
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ArrowLeft color="#f97316" size={28} />
+    <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+      <StatusBar barStyle="light-content" backgroundColor={ORANGE} />
+
+      {/* ── HAUT ORANGE ── */}
+      <View style={styles.topSection}>
+        <View style={styles.circleTopRight} />
+        <TouchableOpacity
+          onPress={() => router.replace('/')}
+          style={styles.backBtn}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          <ArrowLeft color="#FFF" size={22} />
         </TouchableOpacity>
-
-        <View style={styles.header}>
-          <Text style={styles.title}>Connexion</Text>
-          <Text style={styles.subtitle}>Ravis de vous revoir !</Text>
+        <View style={styles.topContent}>
+          <Text style={styles.topTitle}>Connexion</Text>
+          <Text style={styles.topSub}>Ravis de vous revoir !</Text>
         </View>
+      </View>
 
+      {/* ── BAS BLANC ── */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.bottomSheet}
+      >
         <View style={styles.form}>
-          <View style={styles.inputContainer}>
-            <Mail color="#9ca3af" size={20} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!isLoading}
-            />
+
+          {/* Email */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Adresse email</Text>
+            <View style={styles.inputRow}>
+              <Mail color="#9CA3AF" size={18} style={{ marginRight: 10 }} />
+              <TextInput
+                style={styles.input}
+                placeholder="exemple@email.com"
+                placeholderTextColor="#D1D5DB"
+                value={email}
+                onChangeText={setEmail}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!isLoading}
+              />
+            </View>
           </View>
 
-          <View style={styles.inputContainer}>
-            <Lock color="#9ca3af" size={20} style={styles.inputIcon} />
-            <TextInput
-              style={styles.input}
-              placeholder="Mot de passe"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              editable={!isLoading}
-            />
+          {/* Mot de passe */}
+          <View style={styles.fieldGroup}>
+            <Text style={styles.fieldLabel}>Mot de passe</Text>
+            <View style={styles.inputRow}>
+              <Lock color="#9CA3AF" size={18} style={{ marginRight: 10 }} />
+              <TextInput
+                style={styles.input}
+                placeholder="••••••••"
+                placeholderTextColor="#D1D5DB"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry
+                editable={!isLoading}
+              />
+            </View>
           </View>
 
+          {/* Mot de passe oublié */}
           <Link href="/reset-password" asChild>
-            <TouchableOpacity style={styles.forgotPassword} activeOpacity={0.7}>
-                <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
+            <TouchableOpacity activeOpacity={0.7} style={styles.forgotRow}>
+              <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
             </TouchableOpacity>
           </Link>
 
-          <TouchableOpacity 
-            style={[styles.loginButton, isLoading && { backgroundColor: '#fdba74' }]} 
+          {/* Bouton */}
+          <TouchableOpacity
+            style={[styles.loginBtn, isLoading && { opacity: 0.7 }]}
             onPress={handleLogin}
             disabled={isLoading}
+            activeOpacity={0.85}
           >
             {isLoading ? (
-              <ActivityIndicator color="#fff" />
+              <ActivityIndicator color="#FFF" />
             ) : (
-              <Text style={styles.loginButtonText}>SE CONNECTER</Text>
+              <Text style={styles.loginBtnText}>Se connecter</Text>
             )}
           </TouchableOpacity>
+
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -108,73 +134,96 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
+  container: { flex: 1, backgroundColor: '#FFF' },
+
+  // Top orange
+  topSection: {
+    backgroundColor: ORANGE,
+    paddingHorizontal: 22,
+    paddingTop: 10,
+    paddingBottom: 32,
+    overflow: 'hidden',
   },
-  inner: {
-    flex: 1,
-    paddingHorizontal: 30,
+  circleTopRight: {
+    position: 'absolute',
+    top: -60,
+    right: -60,
+    width: 200,
+    height: 200,
+    borderRadius: 100,
+    backgroundColor: 'rgba(255,255,255,0.1)',
   },
-  backButton: {
-    marginTop: 20,
-    width: 40,
-    height: 40,
+  backBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  header: {
-    marginTop: 40,
-    marginBottom: 40,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#1f2937',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    marginTop: 5,
+  topContent: {},
+  topTitle: { fontSize: 30, fontWeight: '800', color: '#FFF' },
+  topSub: { fontSize: 14, color: 'rgba(255,255,255,0.75)', marginTop: 4 },
+
+  // Bottom sheet
+  bottomSheet: {
+    flex: 1,
+    backgroundColor: '#FFF',
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
   },
   form: {
+    paddingHorizontal: 24,
+    paddingTop: 32,
     gap: 20,
   },
-  inputContainer: {
+
+  // Champs
+  fieldGroup: { gap: 6 },
+  fieldLabel: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#6B7280',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  inputRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f3f4f6',
-    borderRadius: 12,
-    paddingHorizontal: 15,
-    height: 60,
+    backgroundColor: '#F9FAFB',
     borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  inputIcon: {
-    marginRight: 10,
+    borderColor: '#E5E7EB',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    height: 56,
   },
   input: {
     flex: 1,
-    color: '#1f2937',
-    fontSize: 16,
+    fontSize: 15,
+    color: '#111827',
   },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-  },
-  forgotText: {
-    color: '#f97316',
-    fontWeight: '600',
-  },
-  loginButton: {
-    backgroundColor: '#f97316',
-    paddingVertical: 18,
-    borderRadius: 15,
+
+  // Mot de passe oublié
+  forgotRow: { alignSelf: 'flex-end' },
+  forgotText: { color: ORANGE, fontWeight: '700', fontSize: 13 },
+
+  // Bouton
+  loginBtn: {
+    backgroundColor: ORANGE,
+    paddingVertical: 17,
+    borderRadius: 16,
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 4,
+    shadowColor: ORANGE,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    elevation: 6,
   },
-  loginButtonText: {
-    color: '#fff',
+  loginBtnText: {
+    color: '#FFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '800',
   },
 });
-// ... (Garder tes styles identiques)
