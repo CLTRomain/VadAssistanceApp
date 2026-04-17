@@ -43,9 +43,9 @@ export const Login = async (email, password) => {
   }
 };
 
-export const CreateInterventionRequest = async ({ subject, description }) => {
+export const CreateInterventionRequest = async ({ subject, description, contractSubscriberId }) => {
   try {
-    const API_URL = `http://${ip}:${port}/support-requests/create`;
+    const API_URL = `http://${ip}:${port}/demandsInterventions`;
     const token = await getToken();
 
     const response = await fetch(API_URL, {
@@ -55,12 +55,34 @@ export const CreateInterventionRequest = async ({ subject, description }) => {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`,
       },
-      body: JSON.stringify({ subject, description }),
+      body: JSON.stringify({ subject, description, contract_subscriber_id: contractSubscriberId }),
     });
 
     return await response.json();
   } catch (error) {
     console.error('Erreur CreateInterventionRequest:', error);
+    return null;
+  }
+};
+
+export const AskToEndContract = async (contractSubscriberId) => {
+  try {
+    const API_URL = `http://${ip}:${port}/askToEndContract`;
+    const token = await getToken();
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ contract_subscriber_id: contractSubscriberId }),
+    });
+
+    return await response.json();
+  } catch (error) {
+    console.error('Erreur AskToEndContract:', error);
     return null;
   }
 };

@@ -16,7 +16,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { GetContractDetails } from '../../src/requests/get';
-import { CreateInterventionRequest } from '../../src/requests/post';
+import { CreateInterventionRequest, AskToEndContract } from '../../src/requests/post';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 const ORANGE = '#f97316';
@@ -62,7 +62,7 @@ const getStatusConfig = (status: string): StatusConfig => {
 };
 
 export default function ContractDetailsScreen() {
-  const { id } = useLocalSearchParams();
+  const { id, name, subscriberId } = useLocalSearchParams();
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
@@ -70,9 +70,11 @@ export default function ContractDetailsScreen() {
   const [subject, setSubject] = useState('');
   const [description, setDescription] = useState('');
   const [resilierVisible, setResilierVisible] = useState(false);
+  const [toastConfig, setToastConfig] = useState({ message: '', success: true });
   const toastOpacity = useRef(new Animated.Value(0)).current;
 
-  const showToast = () => {
+  const showToast = (message: string, success: boolean = true) => {
+    setToastConfig({ message, success });
     Animated.sequence([
       Animated.timing(toastOpacity, { toValue: 1, duration: 300, useNativeDriver: true }),
       Animated.delay(2500),
@@ -80,10 +82,14 @@ export default function ContractDetailsScreen() {
     ]).start();
   };
 
-  const handleResilier = () => {
+  const handleResilier = async () => {
     setResilierVisible(false);
-    showToast();
-    // TODO: appel API résiliation
+    const result = await AskToEndContract(subscriberId as string);
+    if (result?.success) {
+      showToast('Votre demande de résiliation a été prise en compte', true);
+    } else {
+      showToast(result?.message || 'Une erreur est survenue.', false);
+    }
   };
 
   const handleSubmitIntervention = async () => {
@@ -106,13 +112,13 @@ export default function ContractDetailsScreen() {
     setModalVisible(false);
 
     // Envoi au backend
-    await CreateInterventionRequest({ subject: newRequest.subject, description: newRequest.description });
+    await CreateInterventionRequest({ subject: newRequest.subject, description: newRequest.description, contractSubscriberId: subscriberId as string });
   };
 
   useEffect(() => {
     const loadData = async () => {
       setLoading(true);
-      const result = await GetContractDetails(id || '96212');
+      const result = await GetContractDetails(id || '21');
       if (result?.success) setData(result.data);
       setLoading(false);
     };
@@ -142,7 +148,7 @@ export default function ContractDetailsScreen() {
           <Ionicons name="chevron-back" size={22} color="#FFF" />
         </TouchableOpacity>
         <View style={styles.headerCenter}>
-          <Text style={styles.headerTitle}>Mon Contrat</Text>
+          <Text style={styles.headerTitle}>{name || 'Mon Contrat'}</Text>
           <Text style={styles.headerSub}>Détails & interventions</Text>
         </View>
         <View style={styles.headerIcon}>
@@ -170,7 +176,7 @@ export default function ContractDetailsScreen() {
         <Text style={styles.sectionLabel}>Mes demandes récentes</Text>
         <View style={styles.card}>
           {data?.supportRequestContacts?.length > 0 ? (
-            <ScrollView nestedScrollEnabled style={{ maxHeight: 260 }} showsVerticalScrollIndicator={false}>
+            <ScrollView nestedScrollEnabled style={{ maxHeight: 240 }} showsVerticalScrollIndicator={false}>
               {data.supportRequestContacts.map((req: any, i: number) => {
                 const s = getStatusConfig(req.status);
                 return (
@@ -219,12 +225,12 @@ export default function ContractDetailsScreen() {
                   </View>
                   <Text style={styles.forfaitName} numberOfLines={1}>{domainName}</Text>
                 </View>
-                <Text style={styles.forfaitAmount}>{domain.totalSinistres}€</Text>
-                <Text style={styles.forfaitSub}>sur {domain.cumul}€ de forfait</Text>
+                <Text style={styles.forfaitAmount}>{Number.isInteger(domain.totalSinistres) ? domain.totalSinistres : domain.totalSinistres.toFixed(2)}€</Text>
+                <Text style={styles.forfaitSub}>sur {Number.isInteger(domain.cumul) ? domain.cumul : domain.cumul.toFixed(2)}€ de forfait</Text>
                 <View style={styles.progressTrack}>
                   <View style={[styles.progressBar, { width: `${progress}%` as any, backgroundColor: cfg.color }]} />
                 </View>
-                <Text style={styles.progressPct}>{Math.round(progress)}% utilisé</Text>
+                <Text style={styles.progressPct}>{Number.isInteger(Math.round(progress * 100) / 100) ? Math.round(progress) : (Math.round(progress * 100) / 100).toFixed(2)}% utilisé</Text>
               </View>
             );
           })}
@@ -371,10 +377,14 @@ export default function ContractDetailsScreen() {
         </View>
       </Modal>
 
-      {/* ── TOAST CONFIRMATION ── */}
+      {/* ── TOAST ── */}
       <Animated.View style={[styles.toast, { opacity: toastOpacity }]} pointerEvents="none">
-        <Ionicons name="checkmark-circle" size={18} color="#22C55E" />
-        <Text style={styles.toastText}>Votre demande de résiliation a été prise en compte</Text>
+        <Ionicons
+          name={toastConfig.success ? 'checkmark-circle' : 'alert-circle'}
+          size={18}
+          color={toastConfig.success ? '#22C55E' : '#EF4444'}
+        />
+        <Text style={styles.toastText}>{toastConfig.message}</Text>
       </Animated.View>
 
     </SafeAreaView>

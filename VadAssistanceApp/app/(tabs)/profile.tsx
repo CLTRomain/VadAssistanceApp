@@ -30,6 +30,7 @@ import {
 import { GetProfile, GetDownload } from '../../src/requests/get';
 import { removeToken } from '../../src/auth/authStorage';
 import { UpdateSubscriber } from '../../src/requests/post';
+import { registerForPushNotifications, savePushTokenToBackend } from '../../src/notifications/pushNotifications';
 
 const ORANGE = '#f97316';
 const ORANGE_LIGHT = '#FFEDD5';
@@ -44,7 +45,14 @@ export default function ProfileScreen() {
 
   useEffect(() => {
     fetchProfileData();
+    setupPushNotifications();
   }, []);
+
+  const setupPushNotifications = async () => {
+    const pushToken = await registerForPushNotifications();
+    console.log('🔔 Push Token:', pushToken);
+    if (pushToken) await savePushTokenToBackend(pushToken);
+  };
 
   const fetchProfileData = async () => {
     try {
@@ -89,8 +97,8 @@ export default function ProfileScreen() {
     ]);
   };
 
-  const handlePressConsulter = () => {
-    router.replace('/contract-details');
+  const handlePressConsulter = (contractId: string, contractName: string, subscriberId: number) => {
+    router.push({ pathname: '/contract-details', params: { id: contractId, name: contractName, subscriberId: String(subscriberId) } });
   };
 
   if (loading) {
@@ -117,7 +125,7 @@ export default function ProfileScreen() {
         </View>
         <View style={styles.headerInfo}>
           <Text style={styles.headerName}>{user.first_name} {user.last_name}</Text>
-          <Text style={styles.headerSub}>{user.contract_name}</Text>
+          <Text style={styles.headerSub}>{user.contracts?.[0]?.contract_name ?? ''}</Text>
         </View>
         <TouchableOpacity
           onPress={handleLogout}
@@ -133,39 +141,87 @@ export default function ProfileScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* ── BOUTON CONSULTER MON CONTRAT ── */}
-        <TouchableOpacity onPress={handlePressConsulter} style={styles.ctaButton} activeOpacity={0.85}>
-          <View style={styles.ctaLeft}>
-            <View style={styles.ctaIconBg}>
-              <FileText size={20} color={ORANGE} />
+        {/* ── MES CONTRATS ── */}
+        <Text style={styles.sectionLabel}>Mes contrats</Text>
+        <View style={styles.card}>
+          {user.contracts?.length > 0 ? (
+            user.contracts.map((contract: any, i: number) => {
+              // Parse DD/MM/YYYY
+              const [day, month, year] = (contract.signed_at ?? '').split('/');
+              const signedDate = day && month && year
+                ? new Date(`${year}-${month}-${day}`).toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' })
+                : null;
+              return (
+                <TouchableOpacity
+                  key={contract.contract_id ?? i}
+                  style={[styles.contractRow, i === 0 && { borderTopWidth: 0 }]}
+                  onPress={() => handlePressConsulter(String(contract.contract_id), contract.contract_name, contract.contract_subscriber_id)}
+                  activeOpacity={0.75}
+                >
+                  <View style={styles.contractIconBg}>
+                    <FileText size={18} color={ORANGE} />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.contractName}>{contract.contract_name}</Text>
+                    {signedDate && (
+                      <Text style={styles.contractDate}>Depuis le {signedDate}</Text>
+                    )}
+                  </View>
+                  <ChevronRight size={18} color="#D1D5DB" />
+                </TouchableOpacity>
+              );
+            })
+          ) : (
+            <View style={styles.emptyState}>
+              <FileText size={28} color="#D1D5DB" />
+              <Text style={styles.emptyText}>Aucun contrat actif</Text>
             </View>
-            <Text style={styles.ctaText}>Consulter mon contrat</Text>
-          </View>
-          <ChevronRight size={18} color="#FFF" />
-        </TouchableOpacity>
+          )}
+        </View>
 
         {/* ── MES DOCUMENTS ── */}
-        <Text style={styles.sectionLabel}>Mes documents</Text>
-        <View style={styles.card}>
-          {user.contract_subscriber_files?.length > 0 ? (
-            user.contract_subscriber_files.map((file: any, i: number) => (
-              <View key={file.id} style={[styles.fileRow, i === 0 && { borderTopWidth: 0 }]}>
-                <View style={styles.fileIconBg}>
-                  <FileText size={18} color={ORANGE} />
-                </View>
-                <Text style={styles.fileName} numberOfLines={1}>{file.name}</Text>
-                <TouchableOpacity style={styles.downloadBtn} onPress={() => handleDownload(file.download_path)}>
-                  <Download size={18} color={ORANGE} />
-                </TouchableOpacity>
+        <View style={styles.docSectionHeader}>
+          <FileText size={16} color={ORANGE} />
+          <Text style={[styles.sectionLabel, { marginBottom: 0 }]}>Mes documents</Text>
+        </View>
+        {user.contracts?.length > 0 ? (
+          user.contracts.map((contract: any, ci: number) => (
+            <View key={contract.contract_id ?? ci} style={{ marginBottom: 16 }}>
+              {/* Nom du contrat */}
+              <View style={styles.docContractHeader}>
+                <View style={styles.docContractDot} />
+                <Text style={styles.docContractTitle}>{contract.contract_name}</Text>
               </View>
-            ))
-          ) : (
+              <View style={styles.card}>
+                {contract.files?.length > 0 ? (
+                  contract.files.map((file: any, i: number) => (
+                    <View key={file.id ?? i} style={[styles.fileRow, i === 0 && { borderTopWidth: 0 }]}>
+                      <View style={styles.fileIconBg}>
+                        <FileText size={18} color={ORANGE} />
+                      </View>
+                      <Text style={styles.fileName} numberOfLines={1}>{file.name}</Text>
+                      <TouchableOpacity style={styles.downloadBtn} onPress={() => handleDownload(file.download_path)}>
+                        <Download size={18} color={ORANGE} />
+                      </TouchableOpacity>
+                    </View>
+                  ))
+                ) : (
+                  <View style={styles.emptyState}>
+                    <FileText size={28} color="#D1D5DB" />
+                    <Text style={styles.emptyText}>Aucun document disponible</Text>
+                  </View>
+                )}
+              </View>
+            </View>
+          ))
+        ) : (
+          <View style={[styles.card, { marginBottom: 24 }]}>
             <View style={styles.emptyState}>
               <FileText size={28} color="#D1D5DB" />
               <Text style={styles.emptyText}>Aucun document disponible</Text>
             </View>
-          )}
-        </View>
+          </View>
+        )}
 
         {/* ── MES COORDONNÉES ── */}
         <View style={styles.sectionHeaderRow}>
@@ -408,6 +464,52 @@ const styles = StyleSheet.create({
   },
 
   emptyState: { paddingVertical: 28, alignItems: 'center' },
+
+  docSectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 12,
+  },
+  docContractHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+    marginLeft: 4,
+    gap: 8,
+  },
+  docContractDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: ORANGE,
+  },
+  docContractTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#374151',
+  },
+
+  // Contrats
+  contractRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+  },
+  contractIconBg: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: ORANGE_LIGHT,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  contractName: { fontSize: 14, fontWeight: '700', color: '#111827' },
+  contractDate: { fontSize: 11, color: '#9CA3AF', marginTop: 2 },
   emptyText: { marginTop: 10, color: '#9CA3AF', fontSize: 13, fontStyle: 'italic' },
 
   // Info rows

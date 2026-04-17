@@ -3,8 +3,9 @@ import { router } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 
-var ip = "localhost"; 
-var port = "8888"
+var ip = process.env.EXPO_PUBLIC_API_IP || "localhost";
+var port = "8888";
+console.log('🌐 IP utilisée:', ip, '| Port:', port);
 
 export const GetProfile = async () => {
   try {
@@ -64,24 +65,64 @@ export const GetProfile = async () => {
   }
 };
 
+
+
+
 export const GetContractDetails = async (contractId) => {
   try {
-    const token = await getToken();
     const API_URL = `http://${ip}:${port}/contracts-subscribers/get-contract-details/${contractId}`;
+    const token = await getToken();
 
     const response = await fetch(API_URL, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
+        'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
     });
 
-    const result = await response.json();
-    return result; // Retourne l'objet { success: true, data: { ... } }
+    // 1. On récupère d'abord le texte BRUT
+    const rawText = await response.text();
+
+    // 2. Gestion du nouveau token (identique)
+    const newToken = response.headers.get('X-New-Token');
+    if (newToken) {
+      await saveToken(newToken);
+    }
+
+    // 3. Si le serveur renvoie une erreur (401, 500, 404...)
+    if (!response.ok) {
+      if (response.status === 401) {
+        console.warn('⚠️ Session expirée.');
+        await removeToken();
+        router.replace('/login');
+        return null;
+      }
+
+      // SI ERREUR 500 : On affiche le HTML dans la console pour débugger le PHP
+      console.log("--- CONTENU REÇU DU SERVEUR (ERREUR) ---");
+      console.log(rawText); 
+      console.log("-----------------------------------------");
+      console.log(response.status);
+      console.log(API_URL);
+      throw new Error(`Erreur serveur ${response.status}`);
+    }
+
+    // 4. Si OK, on tente de parser le JSON
+    try {
+      const result = JSON.parse(rawText);
+      console.log('✅ Profil récupéré avec succès');
+      return result;
+    } catch (parseError) {
+      console.error("❌ Le serveur a répondu 'OK' mais le contenu n'est pas du JSON :");
+      console.log(rawText);
+      throw parseError;
+    }
+
   } catch (error) {
-    console.error("Erreur appel contrat:", error);
-    return null;
+    console.error('❌ Erreur réseau ou serveur:', error);
+    throw error;
   }
 };
 
