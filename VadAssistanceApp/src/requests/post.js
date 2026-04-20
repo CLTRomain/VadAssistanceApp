@@ -1,12 +1,20 @@
 import { saveToken , getToken } from '../auth/authStorage'; // Ton fichier SecureStore
 import { Platform } from 'react-native';
 
-var ip = "localhost";
-var port = "8888"
+// var ip = process.env.EXPO_PUBLIC_API_IP || "localhost";
+// var port = process.env.EXPO_PUBLIC_API_PORT || "80";
+
+
+ var ip = "localhost";
+ var port =  "8888";
+
+ console.log('🌐 IP utilisée:', ip, '| Port:', port);
+
 
 export const Login = async (email, password) => {
   try {
     const API_URL = `http://${ip}:${port}/login`;
+   // const API_URL_LOCAL = `http://localhost:${port}/login`;
 
     const response = await fetch(API_URL, {
       method: 'POST',

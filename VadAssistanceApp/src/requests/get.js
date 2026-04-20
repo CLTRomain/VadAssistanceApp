@@ -3,8 +3,13 @@ import { router } from 'expo-router';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 
-var ip = process.env.EXPO_PUBLIC_API_IP || "localhost";
-var port = "8888";
+// var ip = process.env.EXPO_PUBLIC_API_IP || "localhost";
+// var port = process.env.EXPO_PUBLIC_API_PORT || "80";
+
+
+ var ip = "localhost";
+ var port =  "8888";
+
 console.log('🌐 IP utilisée:', ip, '| Port:', port);
 
 export const GetProfile = async () => {
@@ -64,8 +69,6 @@ export const GetProfile = async () => {
     throw error;
   }
 };
-
-
 
 
 export const GetContractDetails = async (contractId) => {
