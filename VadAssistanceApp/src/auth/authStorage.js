@@ -1,6 +1,7 @@
 import * as SecureStore from 'expo-secure-store';
 
-const TOKEN_KEY = 'key_token'; // Clé pour stocker le token dans SecureStore
+const TOKEN_KEY = 'key_token';
+const PUSH_TOKEN_KEY = 'key_push_token';
 
 // Sauvegarder le token
 export const saveToken = async (token) => {
@@ -34,5 +35,33 @@ export const removeToken = async () => {
     await SecureStore.deleteItemAsync(TOKEN_KEY);
   } catch (error) {
     console.error("Erreur lors de la suppression du token", error);
+  }
+};
+
+// Sauvegarder le push token
+export const savePushToken = async (token) => {
+  try {
+    await SecureStore.setItemAsync(PUSH_TOKEN_KEY, token);
+  } catch (error) {
+    console.error("Erreur lors de la sauvegarde du push token", error);
+  }
+};
+
+// Récupérer le push token
+export const getPushToken = async () => {
+  try {
+    return await SecureStore.getItemAsync(PUSH_TOKEN_KEY);
+  } catch (error) {
+    console.error("Erreur lors de la récupération du push token", error);
+    return null;
+  }
+};
+
+// Supprimer le push token
+export const removePushToken = async () => {
+  try {
+    await SecureStore.deleteItemAsync(PUSH_TOKEN_KEY);
+  } catch (error) {
+    console.error("Erreur lors de la suppression du push token", error);
   }
 };

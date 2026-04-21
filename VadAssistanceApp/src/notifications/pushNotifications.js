@@ -1,10 +1,10 @@
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
-import { getToken } from '../auth/authStorage';
+import { getToken, savePushToken } from '../auth/authStorage';
 
 var ip = process.env.EXPO_PUBLIC_API_IP || "localhost";
-var port = "8888";
+var port = process.env.EXPO_PUBLIC_API_PORT || "8888";
 
 // Configure comment les notifications s'affichent quand l'app est ouverte
 Notifications.setNotificationHandler({
@@ -17,12 +17,13 @@ Notifications.setNotificationHandler({
 
 /**
  * Demande la permission et récupère le push token Expo
- * Retourne le token ou null si refusé / simulateur
+ * Retourne le token ou null si refusé
  */
 export const registerForPushNotifications = async () => {
   if (!Device.isDevice) {
-    console.log('Push notifications non disponibles sur simulateur');
-    return null;
+    const fakeToken = `ExponentPushToken[SIMULATOR-TEST]`;
+    console.log('🧪 Simulateur — token de test:', fakeToken);
+    return fakeToken;
   }
 
   // Vérifie / demande la permission
@@ -52,7 +53,9 @@ export const registerForPushNotifications = async () => {
   const tokenData = await Notifications.getExpoPushTokenAsync({
     projectId: 'd6624a84-8206-476a-bb25-56793a26d7db',
   });
-  return tokenData.data;
+  const token = tokenData.data;
+  console.log('🔔 Push Token:', token);
+  return token;
 };
 
 /**
@@ -61,7 +64,13 @@ export const registerForPushNotifications = async () => {
 export const savePushTokenToBackend = async (pushToken) => {
   try {
     const authToken = await getToken();
-    const response = await fetch(`http://${ip}:${port}/save-push-token`, {
+    const API_URL = `http://${ip}:${port}/subscribers/save-push-token`;
+
+    console.log('📤 [pushToken] Envoi vers:', API_URL);
+    console.log('📤 [pushToken] Token push:', pushToken);
+    console.log('📤 [pushToken] JWT présent:', !!authToken);
+
+    const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -70,9 +79,17 @@ export const savePushTokenToBackend = async (pushToken) => {
       },
       body: JSON.stringify({ push_token: pushToken }),
     });
-    return await response.json();
+
+    console.log('📥 [pushToken] Status HTTP:', response.status);
+    const result = await response.json();
+    console.log('📥 [pushToken] Réponse backend:', result);
+    if (result?.success) {
+      await savePushToken(pushToken);
+      console.log('💾 Push token sauvegardé localement');
+    }
+    return result;
   } catch (error) {
-    console.error('Erreur sauvegarde push token:', error);
+    console.error('❌ [pushToken] Erreur réseau:', error);
     return null;
   }
 };

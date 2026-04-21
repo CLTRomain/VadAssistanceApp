@@ -28,8 +28,7 @@ import {
 } from 'lucide-react-native';
 
 import { GetProfile, GetDownload } from '../../src/requests/get';
-import { removeToken } from '../../src/auth/authStorage';
-import { UpdateSubscriber } from '../../src/requests/post';
+import { UpdateSubscriber, Logout } from '../../src/requests/post';
 import { registerForPushNotifications, savePushTokenToBackend } from '../../src/notifications/pushNotifications';
 
 const ORANGE = '#f97316';
@@ -90,7 +89,7 @@ export default function ProfileScreen() {
         text: 'Déconnexion',
         style: 'destructive',
         onPress: async () => {
-          await removeToken();
+          await Logout(); // Appelle le backend + nettoie JWT et push token
           router.replace('/login');
         },
       },

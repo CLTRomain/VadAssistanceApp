@@ -15,6 +15,7 @@ import { useRouter, Link } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Mail, Lock } from 'lucide-react-native';
 import { Login } from '../../src/requests/post';
+import { registerForPushNotifications, savePushTokenToBackend } from '../../src/notifications/pushNotifications';
 
 const ORANGE = '#f97316';
 
@@ -33,6 +34,11 @@ export default function LoginScreen() {
     try {
       const result = await Login(email, password);
       if (result?.success) {
+        // Envoie le push token au backend (token fictif sur simulateur)
+        const pushToken = await registerForPushNotifications();
+        if (pushToken) {
+          await savePushTokenToBackend(pushToken);
+        }
         router.replace('/profile');
       } else {
         Alert.alert('Échec', result.message || 'Identifiants incorrects');

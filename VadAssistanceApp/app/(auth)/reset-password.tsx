@@ -11,25 +11,64 @@ import {
   TouchableWithoutFeedback,
   Alert,
   StatusBar,
+  ActivityIndicator,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ArrowLeft, Mail } from 'lucide-react-native';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { ForgotPassword } from '../../src/requests/post';
 
 const ORANGE = '#f97316';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
   const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [sent, setSent] = useState(false);
 
-  const handleReset = () => {
+  const handleReset = async () => {
     if (!email) {
       Alert.alert('Erreur', 'Veuillez entrer votre adresse email.');
       return;
     }
-    Alert.alert('Succès', 'Si ce compte existe, un email de récupération a été envoyé.');
+    setIsLoading(true);
+    try {
+      const result = await ForgotPassword(email);
+      // On affiche toujours le même message pour ne pas révéler si l'email existe
+      setSent(true);
+    } catch {
+      Alert.alert('Erreur', 'Impossible de contacter le serveur.');
+    } finally {
+      setIsLoading(false);
+    }
   };
+
+  if (sent) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
+        <StatusBar barStyle="light-content" backgroundColor={ORANGE} />
+        <View style={styles.topSection}>
+          <View style={styles.circleTopRight} />
+        </View>
+        <View style={[styles.bottomSheet, { justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }]}>
+          <View style={{ width: 72, height: 72, borderRadius: 36, backgroundColor: '#DCFCE7', justifyContent: 'center', alignItems: 'center', marginBottom: 20 }}>
+            <MaterialCommunityIcons name="email-check-outline" size={36} color="#16A34A" />
+          </View>
+          <Text style={{ fontSize: 22, fontWeight: '800', color: '#111827', marginBottom: 10 }}>Email envoyé !</Text>
+          <Text style={{ fontSize: 14, color: '#6B7280', textAlign: 'center', lineHeight: 22, marginBottom: 32 }}>
+            Si ce compte existe, vous recevrez un lien de réinitialisation dans quelques instants.
+          </Text>
+          <TouchableOpacity style={styles.resetBtn} onPress={() => router.replace('/login')} activeOpacity={0.85}>
+            <Text style={styles.resetBtnText}>Retour à la connexion</Text>
+            <View style={styles.resetArrow}>
+              <MaterialCommunityIcons name="arrow-right" size={16} color={ORANGE} />
+            </View>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top', 'bottom']}>
@@ -82,11 +121,22 @@ export default function ResetPasswordScreen() {
             </View>
 
             {/* Bouton */}
-            <TouchableOpacity style={styles.resetBtn} onPress={handleReset} activeOpacity={0.85}>
-              <Text style={styles.resetBtnText}>Envoyer le lien</Text>
-              <View style={styles.resetArrow}>
-                <MaterialCommunityIcons name="send" size={16} color={ORANGE} />
-              </View>
+            <TouchableOpacity
+              style={[styles.resetBtn, isLoading && { opacity: 0.7 }]}
+              onPress={handleReset}
+              disabled={isLoading}
+              activeOpacity={0.85}
+            >
+              {isLoading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <>
+                  <Text style={styles.resetBtnText}>Envoyer le lien</Text>
+                  <View style={styles.resetArrow}>
+                    <MaterialCommunityIcons name="send" size={16} color={ORANGE} />
+                  </View>
+                </>
+              )}
             </TouchableOpacity>
 
           </View>

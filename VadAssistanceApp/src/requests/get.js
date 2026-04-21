@@ -14,7 +14,7 @@ console.log('🌐 IP utilisée:', ip, '| Port:', port);
 
 export const GetProfile = async () => {
   try {
-    const API_URL = `http://${ip}:${port}/getprofile`;
+    const API_URL = `http://${ip}:${port}/subscribers/getprofile`;
     const token = await getToken();
 
     const response = await fetch(API_URL, {
@@ -131,7 +131,7 @@ export const GetContractDetails = async (contractId) => {
 
 export const GetDownload = async (filePath) => {
   try {
-    const API_URL = `http://${ip}:${port}/download/${filePath}`;
+    const API_URL = `http://${ip}:${port}/contract-subscriber-files/download/${filePath}`;
     const token = await getToken();
 
     const response = await fetch(API_URL, {
